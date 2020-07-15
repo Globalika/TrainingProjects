@@ -1,13 +1,13 @@
 #include <iostream>
 #include "Frame.h"
 #include <thread>
-#include <chrono>
 using namespace std;
 
 int main() {
+	PrintStart();
 	TetrisDesk* myTetris = new TetrisDesk;
 	thread commands(CommandsPanel,myTetris);
-	commands.detach();
 	PrintGame(myTetris);
+	commands.detach();
 	return 0;
 }

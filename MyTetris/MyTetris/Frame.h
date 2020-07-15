@@ -3,6 +3,7 @@
 class Figure {
 public:
 	Figure();
+	Figure(const Figure& other);
 	void TurnMatrix();
 	bool**& GetFigureMatrix();
 	int GetZerolines();
@@ -43,41 +44,40 @@ public:
 };
 void SelectFigurePosition(Figure*& myFigure, int position);
 Figure*& FigureCall();
-//class Cube {
-//public:
-//	void Result(bool a);
-//private:
-//	bool cube;
-//};
 std::string Cube(bool cube);
 class TetrisDesk {
 public:
 	TetrisDesk();
 	void SetFigure(Figure* figure);
+	void SetNextFigure(Figure* figure);
 	void SetStepDown(int stepDown);//??
 	void SetStepSide(int stepSide);
-	bool CurrentFigureOnDesk();//can i add new figure on desk?
+	Figure* GetNextFigure();
+	bool CurrentFigureOnDesk();//can i add current figure on desk?
 	bool MoveFigureDown();//can i move this figure one line down?
 	bool MoveFigureRight();
 	bool MoveFigureLeft();
 	bool TurnFigure();
 	void PrintFigureAndDesk();//print everything at this moment
 	void WriteFigureOnDesk();//write current figure on desk
-	bool FullLineCheck();
-	void ClearFullLine();
+	bool FullLineCheck(int lineId);
+	void ClearFullLine(int lineId);
 	bool** GetDesk();
+	void PrintEnd(TetrisDesk* myTetris);
 	void PrintStep()
 	{
 		std::cout << this->stepDown << std::endl;
 	}
+	void ClearDesk();
 	~TetrisDesk();
 private:
 	bool** desk;
 	Figure* figure;
+	Figure* nextFigure;
 	int stepDown;
 	int stepSide;
 };
-
+void PrintStart();
 void PrintGame(TetrisDesk* myTetris);
 
 void CommandsPanel(TetrisDesk* myTetris);

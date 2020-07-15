@@ -1,13 +1,12 @@
 #include <iostream>
 #include "Frame.h"
-#include "Timer.h"
 #include <string>
-#include <ctime>
 #include "windows.h"
 #include <conio.h>
+#include <mutex>
 using namespace std;
-#define TABLE_LENGTH 24
-#define TABLE_WIDTH 16
+#define TABLE_LENGTH 20
+#define TABLE_WIDTH 12
 #define FIGURE_MATRIX_SIZE 4  
 
 Figure::Figure() {
@@ -19,13 +18,26 @@ Figure::Figure() {
 		this->M[i] = new bool[k];
 		for (int j = 0; j < k; j++)
 		{
-			M[i][j] = false;
+			this->M[i][j] = false;
+		}
+	}
+}
+Figure::Figure(const Figure& other) {
+	this->figureZeroLines = other.figureZeroLines;
+	this->k = other.k;
+	this->M = new bool* [other.k];
+	for (int i = 0; i < k; i++)
+	{
+		this->M[i] = other.M[i];
+		for (int j = 0; j < k; j++)
+		{
+			this->M[i][j] = other.M[i][j];
 		}
 	}
 }
 void Figure::TurnMatrix()
 {
-	bool** oldM = new bool* [k];
+	bool** oldM = new bool*[k];
 	for (int i = 0; i < k; i++)
 	{
 		oldM[i] = new bool[k];
@@ -196,16 +208,6 @@ void SelectFigurePosition(Figure*& myFigure, int position) {
 		myFigure->TurnMatrix();
 	}
 }
-//void Cube::Result(bool a)
-//{
-//	if (a == 0)
-//	{
-//		cout << "   ";
-//	}
-//	else {
-//		cout << "[ ]";
-//	}
-//}
 string Cube(bool cube) {
 	if (cube)
 	{
@@ -231,6 +233,14 @@ TetrisDesk::TetrisDesk() {
 }
 void TetrisDesk::SetFigure(Figure* figure) {
 	this->figure = figure;
+}
+void TetrisDesk::SetNextFigure(Figure* figure)
+{
+	this->nextFigure = figure;
+}
+Figure* TetrisDesk::GetNextFigure()
+{
+	return this->nextFigure;
 }
 void TetrisDesk::SetStepDown(int stepDown) {
 	this->stepDown = stepDown;
@@ -273,18 +283,16 @@ bool TetrisDesk::CurrentFigureOnDesk() {
 }
 bool TetrisDesk::MoveFigureDown()
 {
-	//int k;
 	bool** figureMatrix = figure->GetFigureMatrix();
 	int zeroLines = figure->GetZerolines();
 
 	for (int i = FIGURE_MATRIX_SIZE - 1 + stepDown; i >= stepDown; i--)
 	{
-		//k = 0;
 		for (int j = stepSide; j < stepSide + FIGURE_MATRIX_SIZE; j++)
 		{
 			if (figureMatrix[i - stepDown][0] || figureMatrix[i - stepDown][1] || figureMatrix[i - stepDown][2] || figureMatrix[i - stepDown][3])
 			{
-				if ((i + 1 - zeroLines > 23))//!!!!!!!!!!!!
+				if ((i + 1 - zeroLines > TABLE_LENGTH - 1))
 				{
 					return false;
 				}
@@ -297,20 +305,17 @@ bool TetrisDesk::MoveFigureDown()
 			{
 				break;
 			}
-			//k++;
 		}
 	}
 	SetStepDown(++stepDown);
 	return true;
 }
 bool TetrisDesk::MoveFigureRight() {
-	//int k;
 	bool** figureMatrix = figure->GetFigureMatrix();
 	int zeroLines = figure->GetZerolines();
 
 	for (int j = FIGURE_MATRIX_SIZE - 1 + stepSide; j >= stepSide; j--)
 	{
-		//k = 0;
 		for (int i = FIGURE_MATRIX_SIZE - 1 + stepDown; i >= stepDown; i--)
 		{
 			if (figureMatrix[0][j - stepSide] || figureMatrix[1][j - stepSide] || figureMatrix[2][j - stepSide] || figureMatrix[3][j - stepSide])
@@ -328,7 +333,6 @@ bool TetrisDesk::MoveFigureRight() {
 			{
 				break;
 			}
-			//k++;
 		}
 
 	}
@@ -336,13 +340,11 @@ bool TetrisDesk::MoveFigureRight() {
 	return true;
 }
 bool TetrisDesk::MoveFigureLeft() {
-	//int k;
 	bool** figureMatrix = figure->GetFigureMatrix();
 	int zeroLines = figure->GetZerolines();
 
 	for (int j = stepSide; j < stepSide + FIGURE_MATRIX_SIZE; j++)
 	{
-		//k = 0;
 		for (int i = FIGURE_MATRIX_SIZE - 1 + stepDown; i >= stepDown; i--)
 		{
 			if (figureMatrix[0][j - stepSide] || figureMatrix[1][j - stepSide] || figureMatrix[2][j - stepSide] || figureMatrix[3][j - stepSide])
@@ -360,7 +362,6 @@ bool TetrisDesk::MoveFigureLeft() {
 			{
 				break;
 			}
-			//k++;
 		}
 	}
 	SetStepSide(--stepSide);
@@ -404,17 +405,18 @@ void TetrisDesk::WriteFigureOnDesk() {
 	}
 
 }
-bool TetrisDesk::FullLineCheck() {
-	for (int i = 0; i < TABLE_WIDTH; i++)
+bool TetrisDesk::FullLineCheck(int lineId) {
+
+	for (int j = 0; j < TABLE_WIDTH; j++)
 	{
-		if (!desk[TABLE_LENGTH - 1][i])
+		if (!desk[lineId][j])
 		{
 			return false;
 		}
 	}
 	return true;
 }
-void TetrisDesk::ClearFullLine() {
+void TetrisDesk::ClearFullLine(int lineId) {
 	bool** oldDesk = new bool* [TABLE_LENGTH];
 	for (int i = 0; i < TABLE_LENGTH; i++)
 	{
@@ -433,9 +435,13 @@ void TetrisDesk::ClearFullLine() {
 			{
 				this->desk[i][j] = false;
 			}
-			else 
+			else if ( i <= lineId)
 			{
 				this->desk[i][j] = oldDesk[i - 1][j];
+			}
+			else 
+			{
+				this->desk[i][j] = oldDesk[i][j];
 			}
 		}
 	}
@@ -445,35 +451,146 @@ void TetrisDesk::ClearFullLine() {
 	}
 	delete[] oldDesk;
 }
+mutex mtx;
 void TetrisDesk::PrintFigureAndDesk()
 {
+	mtx.lock();
+	system("CLS");
+	bool** nextMatrix = nextFigure->GetFigureMatrix();
 	bool** figureMatrix = figure->GetFigureMatrix();
 	int zeroLines = figure->GetZerolines();
-	//int k;
-	for (int i = 0; i < TABLE_LENGTH; i++)
+	for (int i = 0; i < TABLE_LENGTH + 2; i++)
 	{
-		//k = 0;
-		for (int j = 0; j < TABLE_WIDTH; j++)
+		for (int j = 0; j < TABLE_WIDTH + 2; j++)
 		{
-			if ((i >= stepDown - zeroLines) && (i < stepDown + FIGURE_MATRIX_SIZE - zeroLines) && (j >= /*(TABLE_WIDTH - FIGURE_MATRIX_SIZE) / 2*/stepSide) && (j < (/*(TABLE_WIDTH - FIGURE_MATRIX_SIZE) / 2*/stepSide + FIGURE_MATRIX_SIZE)))
+			if (i == 0 && j == 0)
 			{
-				if (figureMatrix[i - stepDown + zeroLines][j - stepSide])
+				cout << "  ";
+			}
+			else if(i == 0 && j == 1)
+			{
+				cout << char(201) << char(205);
+			}
+			else if (i == 0 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(205) << char(205) << char(187) << "\t" << char(201) << char(205)  << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(187);//
+			}
+			else if (i == 1 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << char(176) << char(177) << char(177) << char(178) << char(178) << "TETRIS" << char(178) << char(178) << char(177) << char(177) << char(176) << char(186);
+			}
+			else if (i == 2 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(186);
+			}
+			else if (i == 3 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << Cube(nextMatrix[0][0])+ Cube(nextMatrix[0][1])+ Cube(nextMatrix[0][2])+ Cube(nextMatrix[0][3]) << char(176) << char(176) << char(186);
+			}
+			else if (i == 4 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << Cube(nextMatrix[1][0]) + Cube(nextMatrix[1][1]) + Cube(nextMatrix[1][2]) + Cube(nextMatrix[1][3]) << char(176) << char(176) << char(186);
+			}
+			else if (i == 5 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << Cube(nextMatrix[2][0]) + Cube(nextMatrix[2][1]) + Cube(nextMatrix[2][2]) + Cube(nextMatrix[2][3]) << char(176) << char(176) << char(186);
+			}
+			else if (i == 6 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << Cube(nextMatrix[3][0]) + Cube(nextMatrix[3][1]) + Cube(nextMatrix[3][2]) + Cube(nextMatrix[3][3]) << char(176) << char(176) << char(186);
+			}
+			else if (i == 7 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(186);
+			}
+			else if (i == 8 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << "NEXT  FIGURE" << char(176) << char(176) << char(186);
+			}
+			else if (i == 9 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+			}
+			else if (i == 10 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << " MOVE LEFT :  < " << char(186);
+			}
+			else if (i == 11 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+			}
+			else if (i == 12 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << " MOVE RIGHT : > " << char(186);
+			}
+			else if (i == 13 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+			}
+			else if (i == 14 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << " MOVE DOWN :  v " << char(186);
+			}
+			else if (i == 15 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+			}
+			else if (i == 16 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << " ROTATE :     c " << char(186);
+			}
+			else if (i == 17 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+			}
+			else if (i == 18 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  " << "\t" << char(200) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(188);//
+			}
+			else if (i == TABLE_LENGTH + 1 && j == 0)
+			{
+				cout <<"  ";
+			}
+			else if (i == TABLE_LENGTH + 1 && j == 1)
+			{
+				cout << char(200) << char(205);
+			}
+			else if (i == TABLE_LENGTH + 1 && j == TABLE_WIDTH + 1)
+			{
+				cout << char(205) << char(205) << char(188);
+			}
+
+			else if (i == 0 || i == TABLE_LENGTH + 1)
+			{
+				cout << char(205) << char(205) << char(205);
+			}
+			else if (j == 0)
+			{
+				cout << "  " << char(186);
+			}
+			else if (j == TABLE_WIDTH + 1)
+			{
+				cout << char(186) << "  ";
+			}
+			else if ((i >= stepDown - zeroLines + 1) && (i < stepDown + FIGURE_MATRIX_SIZE - zeroLines + 1) && (j >= stepSide + 1) && (j < (stepSide + FIGURE_MATRIX_SIZE + 1)))
+			{
+				if (figureMatrix[i - stepDown + zeroLines - 1][j - stepSide - 1])
 				{
-					cout << Cube(true) /*<< " "*/;
+					cout << Cube(true);
 				}
 				else
 				{
-					cout << Cube(desk[i][j]) /*<< " "*/;
+					cout << Cube(desk[i - 1][j - 1]);
 				}
-				//k++;
 			}
 			else
 			{
-				cout << Cube(desk[i][j]) /*<< " "*/;
+				cout << Cube(desk[i - 1][j - 1]);
 			}
 		}
 		cout << endl;
 	}
+	mtx.unlock();
 }
 TetrisDesk::~TetrisDesk() {
 	for (int i = 0; i < TABLE_LENGTH; i++)
@@ -482,34 +599,257 @@ TetrisDesk::~TetrisDesk() {
 	}
 	delete[] desk;
 }
+void PrintStart()
+{
+	for (int i = 0; i < TABLE_LENGTH + 2; i++)
+	{
+		if (i == 0)
+		{
+			cout << "  " << char(201) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(187) << "   \t" << char(201) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(187);
+		}
+		else if (i == 1)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(177) << char(177) << char(178) << char(178) << "TETRIS" << char(178) << char(178) << char(177) << char(177) << char(176) << char(186);
+		}
+		else if (i == 2)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(186);
+		}
+		else if (i == 3)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << "            " << char(176) << char(176) << char(186);
+		}
+		else if (i == 4)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << "            " << char(176) << char(176) << char(186);
+		}
+		else if (i == 5)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << "            " << char(176) << char(176) << char(186);
+		}
+		else if (i == 6)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << "            " << char(176) << char(176) << char(186);
+		}
 
+		else if (i == 7)
+		{
+			cout << "  " << char(186) << "           PRESS ANY KEY            " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(186);
+		}
+		else if (i == 8)
+		{
+			cout << "  " << char(186) << "              TO START              " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << "NEXT  FIGURE" << char(176) << char(176) << char(186);
+		}
 
+		else if (i == 9)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+		}
+		else if (i == 10)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << " MOVE LEFT :  < " << char(186);
+		}
+		else if (i == 11)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+		}
+		else if (i == 12)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << " MOVE RIGHT : > " << char(186);
+		}
+		else if (i == 13)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+		}
+		else if (i == 14)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << " MOVE DOWN :  v " << char(186);
+		}
+		else if (i == 15)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+		}
+		else if (i == 16)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << " ROTATE :     c " << char(186);
+		}
+		else if (i == 17)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+		}
+		else if (i == 18)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(200) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(188);//
+		}
+		else if (i == 19)
+		{
+			cout << "  " << char(186) << "                                    " << char(186);
+		}
+		else if (i == 20)
+		{
+			cout << "  " << char(200) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(188);
+		}
 
+		cout << endl;
+	}	
+	 _getch();	
+}
+void TetrisDesk::PrintEnd(TetrisDesk* nextTetris)
+{
+	for (int i = 0; i < TABLE_LENGTH + 2; i++)
+	{
+		if (i == 0)
+		{
+			cout << "  " << char(201) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(187) << "   \t" << char(201) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(187);
+		}
+		else if (i == 1)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(177) << char(177) << char(178) << char(178) << "TETRIS" << char(178) << char(178) << char(177) << char(177) << char(176) << char(186);
+		}
+		else if (i == 2)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(186);
+		}
+		else if (i == 3)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << "            " << char(176) << char(176) << char(186);
+		}
+		else if (i == 4)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << "            " << char(176) << char(176) << char(186);
+		}
+		else if (i == 5)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << "            " << char(176) << char(176) << char(186);
+		}
+		else if (i == 6)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << "            " << char(176) << char(176) << char(186);
+		}
+
+		else if (i == 7)
+		{
+			cout << "  " << char(186) << "                 GAME               " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(176) << char(186);
+		}
+		else if (i == 8)
+		{
+			cout << "  " << char(186) << "                 OVER               " << char(186) << "  " << "\t" << char(186) << char(176) << char(176) << "NEXT  FIGURE" << char(176) << char(176) << char(186);
+		}
+
+		else if (i == 9)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+		}
+		else if (i == 10)
+		{
+			cout << "  " << char(186) << "                PRESS R             " << char(186) << "  " << "\t" << char(186) << " MOVE LEFT :  < " << char(186);
+		}
+		else if (i == 11)
+		{
+			cout << "  " << char(186) << "               TO RESTART           " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+		}
+		else if (i == 12)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << " MOVE RIGHT : > " << char(186);
+		}
+		else if (i == 13)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+		}
+		else if (i == 14)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << " MOVE DOWN :  v " << char(186);
+		}
+		else if (i == 15)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+		}
+		else if (i == 16)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << " ROTATE :     c " << char(186);
+		}
+		else if (i == 17)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+		}
+		else if (i == 18)
+		{
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(200) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(188);//
+		}
+		else if (i == 19)
+		{
+			cout << "  " << char(186) << "                                    " << char(186);
+		}
+		else if (i == 20)
+		{
+			cout << "  " << char(200) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(205) << char(188);
+		}
+
+		cout << endl;
+	}
+	char ch;
+	ch = _getch();
+	switch (ch)
+	{
+		case 'r':
+		{
+			PrintGame(nextTetris);
+			break;
+		}
+		case 'R':
+		{
+			PrintGame(nextTetris);
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
+
+void TetrisDesk::ClearDesk() 
+{
+	for (int i = 0; i < TABLE_LENGTH; i++)
+	{
+		for (int j = 0; j < TABLE_WIDTH; j++)
+		{
+			this->desk[i][j] = false;
+		}
+	}
+}
 void PrintGame(TetrisDesk* myTetris)
 {
+	system("CLS");
+	myTetris->SetFigure(FigureCall());
 	while (true)
 	{
-		myTetris->SetFigure(FigureCall());
+		myTetris->SetNextFigure(FigureCall());
 		if (myTetris->CurrentFigureOnDesk())
 		{
 			do
 			{
-				system("CLS");
 				myTetris->PrintFigureAndDesk();
 				Sleep(700);
 			} while (myTetris->MoveFigureDown());
 			myTetris->WriteFigureOnDesk();
 			myTetris->SetStepDown(0);
 			myTetris->SetStepSide((TABLE_WIDTH - FIGURE_MATRIX_SIZE) / 2);
-			while (myTetris->FullLineCheck())
+			for (int i = 0; i < TABLE_LENGTH; i++)
 			{
-				myTetris->ClearFullLine();
+				while (myTetris->FullLineCheck(i))
+				{
+					myTetris->ClearFullLine(i);
+				}
 			}
+			myTetris->SetFigure(myTetris->GetNextFigure());
 		}
 		else
 		{
 			system("CLS");
-			cout << "noob" << endl;
+			//TetrisDesk* nextTetris = new TetrisDesk;
+			myTetris->ClearDesk();
+			myTetris->PrintEnd(myTetris);
 			break;
 		}
 	}
@@ -518,7 +858,6 @@ void PrintGame(TetrisDesk* myTetris)
 void CommandsPanel(TetrisDesk* myTetris)
 {
 	char command;
-	//getch();
 	while (true)
 	{
 		command = _getch();
