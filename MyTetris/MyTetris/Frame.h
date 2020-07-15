@@ -63,7 +63,6 @@ public:
 	bool FullLineCheck(int lineId);
 	void ClearFullLine(int lineId);
 	bool** GetDesk();
-	void PrintEnd(TetrisDesk* myTetris);
 	void PrintStep()
 	{
 		std::cout << this->stepDown << std::endl;
@@ -78,6 +77,7 @@ private:
 	int stepSide;
 };
 void PrintStart();
+void PrintEnd();
 void PrintGame(TetrisDesk* myTetris);
 
 void CommandsPanel(TetrisDesk* myTetris);

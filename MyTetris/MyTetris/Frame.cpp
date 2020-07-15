@@ -694,7 +694,7 @@ void PrintStart()
 	}	
 	 _getch();	
 }
-void TetrisDesk::PrintEnd(TetrisDesk* nextTetris)
+void PrintEnd()
 {
 	for (int i = 0; i < TABLE_LENGTH + 2; i++)
 	{
@@ -742,11 +742,11 @@ void TetrisDesk::PrintEnd(TetrisDesk* nextTetris)
 		}
 		else if (i == 10)
 		{
-			cout << "  " << char(186) << "                PRESS R             " << char(186) << "  " << "\t" << char(186) << " MOVE LEFT :  < " << char(186);
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << " MOVE LEFT :  < " << char(186);
 		}
 		else if (i == 11)
 		{
-			cout << "  " << char(186) << "               TO RESTART           " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
+			cout << "  " << char(186) << "                                    " << char(186) << "  " << "\t" << char(186) << "                " << char(186);
 		}
 		else if (i == 12)
 		{
@@ -786,25 +786,6 @@ void TetrisDesk::PrintEnd(TetrisDesk* nextTetris)
 		}
 
 		cout << endl;
-	}
-	char ch;
-	ch = _getch();
-	switch (ch)
-	{
-		case 'r':
-		{
-			PrintGame(nextTetris);
-			break;
-		}
-		case 'R':
-		{
-			PrintGame(nextTetris);
-			break;
-		}
-		default:
-		{
-			break;
-		}
 	}
 }
 
@@ -847,9 +828,7 @@ void PrintGame(TetrisDesk* myTetris)
 		else
 		{
 			system("CLS");
-			//TetrisDesk* nextTetris = new TetrisDesk;
-			myTetris->ClearDesk();
-			myTetris->PrintEnd(myTetris);
+			PrintEnd();
 			break;
 		}
 	}
