@@ -1,31 +1,41 @@
 #include <iostream>
+#include <mutex>
 #include <thread>
-#include <chrono>
-
+#include "SimpleTimer.h"
 using namespace std;
-
-void DoWork(int a, int b, string msg)
+//uniquw_lock
+mutex mtx;
+void Print(char ch)
 {
-	cout << msg << endl;
-	this_thread::sleep_for(chrono::milliseconds(1000));
-	cout << "++++ " << " start+++" << endl;
-	this_thread::sleep_for(chrono::milliseconds(2000));
-	cout << "a+b = " << a + b << endl;
-	this_thread::sleep_for(chrono::milliseconds(1000));
-	cout << "++++ " << " end+++" << endl;
-}
-
+	unique_lock<mutex> ul(mtx,std::defer_lock);//eshe ne vuzvali i mohem sami
+	
+	this_thread::sleep_for(chrono::milliseconds(10));
+	ul.lock();// naprimer zdes
+	//lock_guard<mutex> lg(mtx);
+	//unique_lock<mutex> ul(mtx);//mohet vazvat lock a mohet i ne//sami vasuvaem gde nado
+	for (size_t i = 0; i < 5; i++)
+	{
+		for (size_t j = 0; j < 10; j++)
+		{
+			cout << ch;
+			this_thread::sleep_for(chrono::milliseconds(10));
+		}
+		cout << endl;
+	}
+	cout << endl;
+	ul.unlock();//esli sami ne vuzovem
+	//mtx.unlock();
+	this_thread::sleep_for(chrono::milliseconds(10));
+}//to vuzovet zdes!!
 
 int main()
 {
-	thread th(DoWork,2,4,"our msf");//potok prinimaet ukazatel, parametru cherez zapyatuu
-	//DoWork(2, 3);
-	for (size_t i = 0; true; i++)
-	{
-		cout << "id -> " << this_thread::get_id() << " main work : " << i << endl;
-		this_thread::sleep_for(chrono::milliseconds(500));
-	}
-	th.join();
+	SimpleTimer timer;
+
+	thread t1(Print, '&');
+	thread t2(Print, '%');
+
+	t1.join();
+	t2.join();
 	return 0;
 }
-

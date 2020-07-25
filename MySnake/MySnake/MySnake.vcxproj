@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{bfefc964-a4d1-4850-b785-cacd25170f3b}</ProjectGuid>
-    <RootNamespace>ProjectXXX</RootNamespace>
+    <ProjectGuid>{30a838a2-e728-47fe-8b66-b722b19ab3e8}</ProjectGuid>
+    <RootNamespace>MySnake</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -139,11 +139,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="SimpleTimer.cpp" />
-    <ClCompile Include="Source.cpp" />
+    <ClCompile Include="Apple.cpp" />
+    <ClCompile Include="Frame.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Queue.cpp" />
+    <ClCompile Include="Snake.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SimpleTimer.h" />
+    <ClInclude Include="Apple.h" />
+    <ClInclude Include="Frame.h" />
+    <ClInclude Include="Queue.h" />
+    <ClInclude Include="Snake.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
